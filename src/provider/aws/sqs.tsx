@@ -60,10 +60,9 @@ export default class SQS extends Component<Props, State> {
             messages: number | string;
         }[] = []
     ) {
-        const rows = queueList.map((queue) => [
-            queue.name,
-            String(queue.messages),
-        ]);
+        const rows = queueList
+            .filter((element) => element.messages > 0)
+            .map((queue) => [queue.name, String(queue.messages)]);
         return [["Queue", "Message Count"], ...rows];
     }
 
