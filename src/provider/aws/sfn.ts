@@ -1,16 +1,14 @@
+import { YargsInstance } from "../../common/module";
 import AWS from "aws-sdk";
 AWS.config.update({ region: "us-east-1" });
 
 export default class SFN {
     public static $ = new AWS.StepFunctions();
 
-    sfns: { arn: string; name: string; type: string }[];
-
-    constructor() {
-        this.sfns = [];
-    }
-
-    public async listStateMachines(token: string | undefined = undefined) {
+    public static async listStateMachines(
+        token: string | undefined = undefined
+    ) {
+        var sfns: any[] = [];
         var params: { maxResults: number; [x: string]: any } = {
             maxResults: 1000,
         };
@@ -19,24 +17,24 @@ export default class SFN {
             const { stateMachines, nextToken } = await SFN.$.listStateMachines(
                 params
             ).promise();
-            this.sfns = this.sfns.concat(
+            sfns =
                 stateMachines.map((element) => {
                     return {
                         arn: element.stateMachineArn,
                         name: element.name,
                         type: element.type,
                     };
-                }) || []
-            );
-            if (nextToken) this.listStateMachines(nextToken);
+                }) || [];
+            if (nextToken)
+                sfns = sfns.concat(await this.listStateMachines(nextToken));
         } catch (e) {
             console.error("Error ", e);
             throw new Error(e);
         }
-        return this.sfns;
+        return sfns;
     }
 
-    async listStateMachineExecutions(
+    public static async listStateMachineExecutions(
         arn: string,
         filter: string | undefined = undefined,
         next_token: string | undefined = undefined
@@ -61,7 +59,7 @@ export default class SFN {
         });
     }
 
-    async invokeStateMachine(
+    public static async invokeStateMachine(
         arn: string,
         event: Object,
         name: string | undefined = undefined
@@ -81,7 +79,7 @@ export default class SFN {
         return executionArn;
     }
 
-    async watchExecution(
+    public static async watchExecution(
         executionArn: string,
         filter: string | undefined = undefined,
         next_token: string | undefined = undefined
@@ -93,13 +91,14 @@ export default class SFN {
         const { events, nextToken } = await SFN.$.getExecutionHistory(
             params
         ).promise();
-        var executions = events.map((element) => {
-            return {
-                id: element.id,
-                timestamp: element.timestamp,
-                type: element.type,
-            };
-        });
+        var executions =
+            events.map((element) => {
+                return {
+                    id: element.id,
+                    timestamp: element.timestamp,
+                    type: element.type,
+                };
+            }) || [];
         if (filter) {
             executions = executions.filter(
                 (element) => element.type === filter
@@ -116,7 +115,7 @@ export default class SFN {
         return executions;
     }
 
-    async stopExecution(executionArn: string) {
+    public static async stopExecution(executionArn: string) {
         var params = {
             executionArn,
         };
@@ -125,5 +124,18 @@ export default class SFN {
             // an error occurred
             else console.log(data); // successful response
         });
+    }
+
+    public static register(instance: YargsInstance) {
+        instance.command(
+            "sfn ls",
+            "Lists every state machines",
+            {},
+            async (argv) => {
+                const fnList = await this.listStateMachines();
+                console.log(fnList);
+            }
+        );
+        return instance;
     }
 }
