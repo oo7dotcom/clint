@@ -81,7 +81,7 @@ export default class SFN {
         return executionArn;
     }
 
-    async execution(
+    async watchExecution(
         executionArn: string,
         filter: string | undefined = undefined
     ) {
@@ -101,5 +101,16 @@ export default class SFN {
             );
         }
         return executions;
+    }
+
+    async stopExecution(executionArn: string) {
+        var params = {
+            executionArn,
+        };
+        SFN.$.stopExecution(params, function (err, data) {
+            if (err) console.log(err, err.stack);
+            // an error occurred
+            else console.log(data); // successful response
+        });
     }
 }
