@@ -1,5 +1,6 @@
 import AWS from "aws-sdk";
 import React, { Component } from "react";
+import { DefaultTableStyle } from "../../styles/table";
 AWS.config.update({ region: "us-east-1" });
 
 type Props = {};
@@ -9,23 +10,6 @@ type State = {
 
 export default class SQS extends Component<Props, State> {
     public static $ = new AWS.SQS({ apiVersion: "2012-11-05" });
-    private static tableStyle = {
-        fg: "black",
-        bg: "white",
-        shadow: true,
-        selected: {
-            bold: true,
-        },
-        item: {
-            hover: {
-                bg: "black",
-                fg: "white",
-            },
-        },
-        header: {
-            bold: true,
-        },
-    };
 
     constructor(props: any) {
         super(props);
@@ -98,7 +82,7 @@ export default class SQS extends Component<Props, State> {
                 border={{ type: "line" }}
                 mouse
                 keys
-                style={SQS.tableStyle}
+                style={DefaultTableStyle}
             />
         );
     }

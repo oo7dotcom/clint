@@ -2,10 +2,12 @@ import React, { Component } from "react";
 import { render } from "react-blessed";
 import * as blessed from "blessed";
 import SQS from "./provider/aws/sqs";
+import Lambda from "./provider/aws/lambda";
+import TableMigrationUtil from "./utils/table-migration";
 
 class App extends Component {
     render() {
-        return <SQS />;
+        return <TableMigrationUtil />;
     }
 }
 
