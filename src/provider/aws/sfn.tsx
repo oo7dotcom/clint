@@ -10,7 +10,7 @@ export default class SFN {
         this.sfns = [];
     }
 
-    public async listStepFunctions(token: string | undefined = undefined) {
+    public async listStateMachines(token: string | undefined = undefined) {
         var params: { maxResults: number; [x: string]: any } = {
             maxResults: 1000,
         };
@@ -28,7 +28,7 @@ export default class SFN {
                     };
                 }) || []
             );
-            if (nextToken) this.listStepFunctions(nextToken);
+            if (nextToken) this.listStateMachines(nextToken);
         } catch (e) {
             console.error("Error ", e);
             throw new Error(e);
@@ -83,11 +83,16 @@ export default class SFN {
 
     async watchExecution(
         executionArn: string,
-        filter: string | undefined = undefined
+        filter: string | undefined = undefined,
+        next_token: string | undefined = undefined
     ) {
-        const { events } = await SFN.$.getExecutionHistory({
-            executionArn,
-        }).promise();
+        var params: { executionArn: string; [x: string]: any };
+        params = { executionArn };
+        if (next_token) params["nextToken"] = next_token;
+
+        const { events, nextToken } = await SFN.$.getExecutionHistory(
+            params
+        ).promise();
         var executions = events.map((element) => {
             return {
                 id: element.id,
@@ -99,6 +104,14 @@ export default class SFN {
             executions = executions.filter(
                 (element) => element.type === filter
             );
+        }
+        if (nextToken) {
+            var temp = await this.watchExecution(
+                executionArn,
+                filter,
+                nextToken
+            );
+            executions = executions.concat(temp);
         }
         return executions;
     }
