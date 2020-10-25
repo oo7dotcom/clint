@@ -1,54 +1,13 @@
 import AWS from "aws-sdk";
-import React, { Component } from "react";
 AWS.config.update({ region: "us-east-1" });
 
-type Props = {};
-type State = {
-    sfns: { arn: string; name: string; type: string }[];
-};
-
-export default class SFN extends Component<Props, State> {
+export default class SFN {
     public static $ = new AWS.StepFunctions();
-    private static tableStyle = {
-        fg: "black",
-        bg: "white",
-        shadow: true,
-        selected: {
-            bold: true,
-        },
-        item: {
-            hover: {
-                bg: "black",
-                fg: "white",
-            },
-        },
-        header: {
-            bold: true,
-        },
-    };
 
-    state: State;
     sfns: { arn: string; name: string; type: string }[];
 
-    constructor(props: any) {
-        super(props);
-
-        this.state = { sfns: [] } as any;
+    constructor() {
         this.sfns = [];
-        this.setState(this.state);
-    }
-
-    async componentDidMount() {
-        await this.runner();
-    }
-
-    buildTable(state: State) {
-        return [["Arn", "Name", " Type"], ...state.sfns];
-    }
-
-    public async runner() {
-        await this.listStepFunctions();
-        // this.setState({ sfns: this.sfns })
     }
 
     public async listStepFunctions(token: string | undefined = undefined) {
@@ -74,6 +33,7 @@ export default class SFN extends Component<Props, State> {
             console.error("Error ", e);
             throw new Error(e);
         }
+        return this.sfns;
     }
 
     async listStateMachineExecutions(
@@ -81,7 +41,6 @@ export default class SFN extends Component<Props, State> {
         filter: string | undefined = undefined,
         next_token: string | undefined = undefined
     ) {
-        //on Click callback for a specific state
         var params: {
             stateMachineArn: string;
             maxResults: number;
@@ -102,20 +61,45 @@ export default class SFN extends Component<Props, State> {
         });
     }
 
-    render() {
-        this.listStepFunctions();
-        return (
-            <blessed-listtable
-                width="50%"
-                height="50%"
-                top="bottom"
-                left="bottom"
-                rows={this.buildTable(this.state)}
-                border={{ type: "line" }}
-                mouse
-                keys
-                style={SFN.tableStyle}
-            />
-        );
+    async invokeStateMachine(
+        arn: string,
+        event: Object,
+        name: string | undefined = undefined
+    ) {
+        var params: {
+            stateMachineArn: string;
+            input: string;
+            name: string | undefined;
+        };
+
+        var params = {
+            stateMachineArn: arn,
+            input: JSON.stringify(event),
+            name,
+        };
+        const { executionArn } = await SFN.$.startExecution(params).promise();
+        return executionArn;
+    }
+
+    async execution(
+        executionArn: string,
+        filter: string | undefined = undefined
+    ) {
+        const { events } = await SFN.$.getExecutionHistory({
+            executionArn,
+        }).promise();
+        var executions = events.map((element) => {
+            return {
+                id: element.id,
+                timestamp: element.timestamp,
+                type: element.type,
+            };
+        });
+        if (filter) {
+            executions = executions.filter(
+                (element) => element.type === filter
+            );
+        }
+        return executions;
     }
 }
